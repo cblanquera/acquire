@@ -12,6 +12,11 @@
 	var definition = function(path, callback) {
 		callback = callback || noop;
 		
+		//from requirejs
+		if(path instanceof Array) {
+			return loadArray(path, callback);
+		}
+		
 		path = definition.getPath(path);
 		
 		if(typeof definition.cache[path] !== 'undefined') {
@@ -49,12 +54,10 @@
 		}
 		
 		if(paths instanceof Array) {
-			loadArray(paths, callback);
-			return this;
+			return loadArray(paths, callback);
 		}
 		
-		loadObject(paths, callback);
-		return this;
+		return loadObject(paths, callback);
 	};
 	
 	definition.loadPath = function(path, callback) {
@@ -108,30 +111,41 @@
 	/* Private Methods
 	-------------------------------*/
 	var loadObject = function(paths, callback) {
+		var results = [];
+		
 		//soft merge
 		for(var path in paths) {
 			if(paths.hasOwnProperty(path)) {
 				definition.cache[path] = paths[path];
+				results.push(definition.cache[path]);
 			}
 		}
 		
-		callback(null);
+		callback.apply(null, results);
+		
+		return results;
 	};
 	
-	var loadArray = function(paths, callback) {
+	var loadArray = function(paths, callback, results) {
+		results = results || [];
+		
 		if(!paths.length) {
-			callback(null);
-			return;
+			callback.apply(null, results);
+			return results;
 		}
 		
 		var path = paths.shift();
 		
+		//what do we do if it's not a string ?
 		if(typeof path !== 'string') {
-			loadArray(paths, callback);
+			results.push(null);
+			//um skip it?
+			loadArray(paths, callback, results);
 		}
 		
-		definition.loadPath(path, function() {
-			loadArray(paths, callback);
+		definition.loadPath(path, function(result) {
+			results.push(result);
+			loadArray(paths, callback, results);
 		});
 	};
 	
