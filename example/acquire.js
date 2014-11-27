@@ -17,7 +17,7 @@
 			return loadArray(path, callback);
 		}
 		
-		path = definition.getPath(path);
+		path = definition.bpm(path);
 		
 		if(typeof definition.cache[path] !== 'undefined') {
 			callback(definition.cache[path]);
@@ -36,9 +36,21 @@
 	/* Private Properties
 	-------------------------------*/
 	var noop = function() {};
+	var paths = {};
 	
 	/* Public Methods
 	-------------------------------*/
+	definition.config = function(config) {
+		//soft merge
+		for(var path in config) {
+			if(config.hasOwnProperty(path)) {
+				paths[path] = config[path];
+			}
+		}
+		
+		return definition;
+	};
+	
 	definition.load = function(paths, callback) {
 		callback = callback || noop;
 		
@@ -61,7 +73,7 @@
 	};
 	
 	definition.loadPath = function(path, callback) {
-		path = definition.getPath(path);
+		path = definition.bpm(path);
 		
 		switch(path.split('.').pop()) {
 			case 'js':
@@ -81,7 +93,13 @@
 			}
 			
 			definition.cache[path] = module.exports;
+			
+			module.exports = null;
+			
 			callback(definition.cache[path]);
+		}).fail(function(e) {
+			throw 'Failed to load ' + path + '. This could be because of a JavaScript error.';
+			callback(new Error('Failed to load ' + path + '. This could be because of a JavaScript error.'));
 		});
 	};
 	
@@ -106,6 +124,53 @@
 		}
 		
 		return path;
+	};
+	
+	definition.bpm = function(path) {
+		//if it starts with a / or has a ://
+		if(path.indexOf('/') === 0
+		|| path.indexOf('://') !== -1) {
+			//just do the default thing
+			return definition.getPath(path);
+		}
+		
+		var pathArray = path.split('/');
+		
+		//determine the module name
+		var module = pathArray.shift();
+		
+		//get put together the rest of the path
+		path = pathArray.join('/');
+		
+		//this is the hard coded path
+		var root = '/browser_modules';
+		
+		//this is the hard coded index
+		var index = '/index.js';
+		
+		var extra = '/' + module;
+		
+		if(typeof paths[module] === 'object') {
+			if(typeof paths[module].root === 'string') {
+				root = paths[module].root;
+			}
+			
+			if(typeof paths[module].index === 'string') {
+				index = paths[module].index;
+			}
+			
+			extra = '';
+		}
+		
+		if(!path.length || path === '/') {
+			path = index;
+		}
+		
+		if(path.indexOf('/') !== 0) {
+			path = '/' + path;
+		}
+		
+		return definition.getPath(root + extra + path);
 	};
 	
 	/* Private Methods
