@@ -14,18 +14,28 @@
 		
 		//from requirejs
 		if(path instanceof Array) {
-			return loadArray(path, callback);
+			return loadArray(path, function() {
+				var args = Array.prototype.slice.apply(arguments);
+				setTimeout(function() {
+					callback.apply(null, args);
+				});
+			});
 		}
 		
 		path = definition.bpm(path);
 		
 		if(typeof definition.cache[path] !== 'undefined') {
-			callback(definition.cache[path]);
+			setTimeout(function() {
+				callback(definition.cache[path]);
+			});
+			
 			return definition.cache[path];	
 		}
 		
 		definition.loadPath(path, function() {
-			callback(definition.cache[path]);
+			setTimeout(function() {
+				callback(definition.cache[path]);
+			});
 		});
 	};
 	
