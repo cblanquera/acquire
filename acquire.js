@@ -109,7 +109,6 @@
 			callback(definition.cache[path]);
 		}).fail(function(e) {
 			throw 'Failed to load ' + path + '. This could be because of a JavaScript error.';
-			callback(new Error('Failed to load ' + path + '. This could be because of a JavaScript error.'));
 		});
 	};
 	
@@ -230,10 +229,7 @@
 		window.module = { exports: null };
 	}
 	
-	if(typeof window.require !== 'undefined' 
-	&& typeof jQuery.require !== 'undefined') {
-		window.acquire = definition;
-	}
+	window.acquire = definition;
 	
 	if(typeof window.require === 'undefined') {
 		window.require = definition;
