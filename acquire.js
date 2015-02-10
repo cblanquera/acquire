@@ -236,6 +236,12 @@
     };
     
     var getPlatformPathPrefix = function(path) {
+		//check if using http, then return the path
+		if(window.location.protocol == 'http:'
+		|| window.location.protocol == 'https:') {
+			return path;
+		}
+		
         // flag if we're running under cordova
         var cordovaNative = window._cordovaNative;
         
