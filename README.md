@@ -35,7 +35,7 @@ require.load({
 	'/application/circle1.js': 'eval;require('%2Fapplication%2Fcircle2.js')()%3Bmodule.exports%20%3D%20function()%20%7B%09console.log('circle-1')%3B%7D'});
 ```
 
-As you can see `/application/circle1.js` is compiled different than the others. This is because there is some other code outside of the `module.exports`. If you have this same case wrap your entire file using `encodeURIComponent`. Acquire will evaluate strings that start with `eval;` following the encoded coded.
+This is the recommended way when you are ready to bundle and minify your code for production use. As you can see `/application/circle1.js` is compiled different than the others. This is because there is some other code outside of the `module.exports`. If you have this same case wrap your entire file using `encodeURIComponent`. Acquire will evaluate strings that start with `eval;` following the encoded coded.
 
 If you need to wait for the pre loaders you can include a callback at the end of the load method as in:
 
