@@ -78,7 +78,3 @@ require('foobar/bar/'); // will now be the same as require('/foobar/bar/index.js
  * Wanted the ability to control the initial cache if integrating to watchers and optimizers
  * Wanted the ability to overwrite core methods
  * Wanted a simple readable implementation
-
-#### Requires
-
-- jQuery - http://jquery.com/download/

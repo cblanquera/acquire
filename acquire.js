@@ -1,7 +1,7 @@
 /**
  * Acquire - Lightweight require() script and file loader with caching
  *
- * @version 0.0.3
+ * @version 0.0.4
  * @author Christian Blanquera <cblanquera@openovate.com>
  * @website https://github.com/cblanquera/acquire
  * @license MIT
@@ -150,7 +150,7 @@
 			return definition.cache[path];	
 		}
 		
-		jQuery.getScript(path).done(function() {
+		getScript(path, function() {
 			if(!module.exports) {
 				callback(definition.cache[path]);
 				return;
@@ -160,8 +160,6 @@
 			
 			module.exports = null;
 			callback(definition.cache[path]);
-		}).fail(function(e) {
-			throw 'Failed to load ' + path + '. This could be because of a JavaScript error.';
 		});
 	};
 	
@@ -193,7 +191,7 @@
 		}
 		
 		//lets ajax.
-		jQuery.get(path, function(response) {
+		getFile(path, function(response) {
 			definition.cache[path] = response;
 			callback(definition.cache[path]);
 		});
@@ -319,6 +317,91 @@
 		}, cached);
 	};
 	
+	var getScript = function(source, callback) {
+		callback = callback || noop;
+		
+		var script 	= document.createElement('script');
+		var head 	= document.getElementsByTagName('head')[0];
+		
+		script.async = 1;
+		
+		head.appendChild(script);
+	
+		script.onload = script.onreadystatechange = function( _, isAbort ) {
+			if(isAbort || !script.readyState || /loaded|complete/.test(script.readyState) ) {
+				script.onload = script.onreadystatechange = null;
+				script = undefined;
+	
+				if(!isAbort) { 
+					callback();
+				}
+			}
+		};
+	
+		script.src = source;
+	};
+	
+	var getFile = function(url, success, fail) {
+		success = success || noop;
+		fail 	= fail || noop;
+		
+        var xhr;
+         
+        if(typeof XMLHttpRequest !== 'undefined') {
+			xhr = new XMLHttpRequest();
+		} else {
+            var versions = [
+				'MSXML2.XmlHttp.5.0', 
+				'MSXML2.XmlHttp.4.0',
+				'MSXML2.XmlHttp.3.0', 
+				'MSXML2.XmlHttp.2.0',
+				'Microsoft.XmlHttp'];
+ 
+             for(var i = 0; i < versions.length; i++) {
+                try {
+                    xhr = new ActiveXObject(versions[i]);
+                    break;
+                }
+                catch(e){}
+             }
+        }
+        
+		if(!xhr) {
+			fail(null);
+			return;
+		}
+		 
+        var process = function() {
+            if(xhr.readyState < 4) {
+                return;
+            }
+			
+			if(xhr.status >= 404 && xhr.status < 600) {
+                fail(xhr);
+				return;
+            }
+			
+            if(xhr.status !== 200) {
+                return;
+            }
+ 
+            // all is well  
+            if(xhr.readyState === 4) {
+				var response = xhr.responseText;
+				
+				try {
+					response = JSON.parse(response);
+				} catch(e) {}
+				
+                success(response, xhr);
+            }           
+        };
+        
+		xhr.onreadystatechange = process;
+        xhr.open('GET', url, true);
+        xhr.send('');
+    };
+	
 	/* Adaptor
 	-------------------------------*/
 	if(!window.module) {
@@ -331,7 +414,7 @@
 		window.require = definition;
 	}
 	
-	if(typeof jQuery.require === 'undefined') {
+	if(typeof jQuery !== 'undefined' && typeof jQuery.require === 'undefined') {
 		jQuery.extend({ require: definition });
 	}
 })();
