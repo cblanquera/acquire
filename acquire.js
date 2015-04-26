@@ -1,7 +1,7 @@
 /**
  * Acquire - Lightweight require() script and file loader with caching
  *
- * @version 0.0.1
+ * @version 0.0.3
  * @author Christian Blanquera <cblanquera@openovate.com>
  * @website https://github.com/cblanquera/acquire
  * @license MIT
@@ -12,31 +12,18 @@
 	var definition = function(path, callback) {
 		callback = callback || noop;
 		
-		//from requirejs
+		//requirejs style
 		if(path instanceof Array) {
 			return loadArray(path, function() {
 				var args = Array.prototype.slice.apply(arguments);
 				setTimeout(function() {
 					callback.apply(null, args);
 				});
-			});
+			}, [], true);
 		}
 		
-		path = definition.bpm(path);
-		
-		if(typeof definition.cache[path] !== 'undefined') {
-			setTimeout(function() {
-				callback(definition.cache[path]);
-			});
-			
-			return definition.cache[path];	
-		}
-		
-		definition.loadPath(path, function() {
-			setTimeout(function() {
-				callback(definition.cache[path]);
-			});
-		});
+		// node style
+		return definition.loadPath(path, callback, true);
 	};
 	
 	/* Public Properties
@@ -50,6 +37,14 @@
 	
 	/* Public Methods
 	-------------------------------*/
+	/**
+	 * Confurres global paths as in 
+	 * sample => /sample/path so when you
+	 * acquire('sample/file') means acquire(/sample/path/file)
+	 *
+	 * @param object 
+	 * @return this
+	 */
 	definition.config = function(config) {
 		//soft merge
 		for(var path in config) {
@@ -61,41 +56,100 @@
 		return definition;
 	};
 	
+	/**
+	 * Forces a load even if it's cached
+	 *
+	 * @param array|string[,string..]
+	 * @param callback
+	 * @return void
+	 */
 	definition.load = function(paths, callback) {
 		callback = callback || noop;
 		
+		//if it's a string lets make it into an array
 		if(typeof paths === 'string') {
 			paths = Array.prototype.slice.apply(arguments);
+			//try to get the callback
 			if(typeof paths[paths.length - 1] === 'function') {
 				callback = paths.pop();
 			}
 		}
 		
+		//if no callback, set one
 		if(typeof callback !== 'function') {
 			callback = noop;
 		}
 		
+		//if paths is an array load it as an array
+		//NOTE: nothing should be really returned
 		if(paths instanceof Array) {
-			return loadArray(paths, callback);
+			return loadArray(paths, function() {
+				var args = Array.prototype.slice.apply(arguments);
+				setTimeout(function() {
+					callback.apply(null, args);
+				});
+			});
 		}
 		
-		return loadObject(paths, callback);
+		//if it's not a string or array, it's an object
+		//NOTE: nothing should be really returned
+		return loadObject(paths, function() {
+			var args = Array.prototype.slice.apply(arguments);
+			setTimeout(function() {
+				callback.apply(null, args);
+			});
+		});
 	};
 	
-	definition.loadPath = function(path, callback) {
+	/**
+	 * Can load a js or any other file, considering
+	 * cache if the flag is on
+	 *
+	 * @param string
+	 * @param function
+	 * @param bool
+	 */
+	definition.loadPath = function(path, callback, cached) {
+		//determine the path
 		path = definition.bpm(path);
 		
-		switch(path.split('.').pop()) {
-			case 'js':
-				definition.loadScript(path, callback);
-				break;
-			default:
-				definition.loadFile(path, callback);
-				break;
+		//if it's a js file
+		if(path.split('.').pop() === 'js') {
+			return definition.loadScript(path, callback, cached);
 		}
+		
+		return definition.loadFile(path, callback, cached);
 	};
 	
-	definition.loadScript = function(path, callback) {
+	/**
+	 * Specifically loads javascript files, considering
+	 * cache if the flag is on
+	 *
+	 * @param string
+	 * @param function
+	 * @param bool
+	 * @return mixed
+	 */
+	definition.loadScript = function(path, callback, cached) {
+		
+		//if we are considering cache and it exists
+		if(cached && typeof definition.cache[path] !== 'undefined') {
+			//is it evaluable ?
+			if(typeof definition.cache[path] === 'string'
+			&& definition.cache[path].indexOf('eval;') === 0) {
+				eval(decodeURIComponent(definition.cache[path].substr(5)));
+				definition.cache[path] = module.exports;
+			}
+			
+			//return it
+			setTimeout(function() {
+				callback(definition.cache[path]);
+			});
+			
+			//node js style
+			return definition.cache[path];	
+		}
+		
 		jQuery.getScript(path).done(function() {
 			if(!module.exports) {
 				callback(definition.cache[path]);
@@ -105,14 +159,39 @@
 			definition.cache[path] = module.exports;
 			
 			module.exports = null;
-			
 			callback(definition.cache[path]);
 		}).fail(function(e) {
 			throw 'Failed to load ' + path + '. This could be because of a JavaScript error.';
 		});
 	};
 	
-	definition.loadFile = function(path, callback) {
+	/**
+	 * AJAXes any file in, considering
+	 * cache if the flag is on
+	 *
+	 * @param string
+	 * @param function
+	 * @param bool
+	 * @return mixed
+	 */
+	definition.loadFile = function(path, callback, cached) {
+		//if we are considering cache and it exists
+		if(cached && typeof definition.cache[path] !== 'undefined') {
+			//is it evaluable ?
+			if(typeof definition.cache[path] === 'string'
+			&& definition.cache[path].indexOf('eval;') === 0) {
+				definition.cache[path] = decodeURIComponent(definition.cache[path].substr(5));
+			}
+			
+			//return it
+			setTimeout(function() {
+				callback(definition.cache[path]);
+			});
+			
+			//node js style
+			return definition.cache[path];	
+		}
+		
 		//lets ajax.
 		jQuery.get(path, function(response) {
 			definition.cache[path] = response;
@@ -120,6 +199,12 @@
 		});
 	};
 	
+	/**
+	 * Adds the js extension if no extension exists
+	 *
+	 * @param string
+	 * @return string
+	 */
 	definition.getPath = function(path) {
 		//get the extension
 		var extension = path.split('.').pop();
@@ -135,6 +220,15 @@
 		return path;
 	};
 	
+	/**
+	 * Determines the entire path given 
+	 * the global pathing set in config.
+	 * WARNING: if using relative paths like template/file
+	 * this would translate to /browser_modules/template/file/index.js
+	 *
+	 * @param string
+	 * @return string
+	 */
 	definition.bpm = function(path) {
 		//if it starts with a / or has a ://
 		if(path.indexOf('/') === 0
@@ -200,7 +294,8 @@
 		return results;
 	};
 	
-	var loadArray = function(paths, callback, results) {
+	var loadArray = function(paths, callback, results, cached) {
+		
 		results = results || [];
 		
 		if(!paths.length) {
@@ -214,13 +309,14 @@
 		if(typeof path !== 'string') {
 			results.push(null);
 			//um skip it?
-			loadArray(paths, callback, results);
+			loadArray(paths, callback, results, cached);
+			return;
 		}
 		
 		definition.loadPath(path, function(result) {
 			results.push(result);
-			loadArray(paths, callback, results);
-		});
+			loadArray(paths, callback, results, cached);
+		}, cached);
 	};
 	
 	/* Adaptor

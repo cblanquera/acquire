@@ -5,27 +5,66 @@ Lightweight require() script and file loader with caching
 
 #### Usage
 
-###### Loader
+```
+require('/application/bar.js');
+```
+
+###### Pre-Loader
+
+Set up a preloader so you can use it like require in Node JS.
 
 ```
-require.load([
+require.load(
 	'/application/bar.js',
 	'/application/template.html',
 	'/application/circle2.js',  
-	'/application/circle1.js'],
-	function() {
+	'/application/circle1.js');
+```
+
+You can also directly define the paths as in:
+
+```
+require.load({
+	'/application/bar.js': function() {
+		return 'foo';
+	},
+	'/application/template.html': '<h1>Yay</h1>',
+	'/application/circle2.js': function() {
+		console.log('circle-2');
+	},  
+	'/application/circle1.js': 'eval;require('%2Fapplication%2Fcircle2.js')()%3Bmodule.exports%20%3D%20function()%20%7B%09console.log('circle-1')%3B%7D'});
+```
+
+As you can see `/application/circle1.js` is compiled different than the others. This is because there is some oether code outside of the `module.exports`. If you have this same case wrap your entire file using `encodeURIComponent`. Acquire will evaluate strings that start with `eval;` following the encoded coded.
+
+If you need to wait for the pre loaders you can include a callback at the end of the load method as in:
+
+```
+require.load(
+	'/application/bar.js',
+	'/application/template.html',
+	'/application/circle2.js',  
+	'/application/circle1.js',
+	function(bar, template, circle2, circle1) {
 		require('/test.js');
 	});
 ```
 
-###### circle1.js
+###### Path Configuration
 
 ```
-require('/application/circle2.js')();
+require.config({
+	application: {
+		root: '/application',
+		index: 'foobar'
+	},
+	foobar: '/foobar'
+});
 
-module.exports = function() {
-	console.log('circle-1');
-}
+require('application/bar'); // will now be the same as require(/application/bar.js)
+require('application/bar/'); // will now be the same as require(/application/bar/foobar.js)
+require('foobar/bar'); // will now be the same as require(/foobar/bar.js)
+require('foobar/bar/'); // will now be the same as require(/foobar/bar/index.js)
 ```
 
 #### Why not X ?
