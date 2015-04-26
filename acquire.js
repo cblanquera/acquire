@@ -38,7 +38,7 @@
 	/* Public Methods
 	-------------------------------*/
 	/**
-	 * Confurres global paths as in 
+	 * Configures global paths as in 
 	 * sample => /sample/path so when you
 	 * acquire('sample/file') means acquire(/sample/path/file)
 	 *
@@ -276,6 +276,13 @@
 	
 	/* Private Methods
 	-------------------------------*/
+	/**
+	 * Soft merges path and value 
+	 * to the global cache variable 
+	 *
+	 * @param string
+	 * @return array
+	 */
 	var loadObject = function(paths, callback) {
 		var results = [];
 		
@@ -292,6 +299,15 @@
 		return results;
 	};
 	
+	/**
+	 * Loads files by the list
+	 *
+	 * @param array
+	 * @param function
+	 * @param array current results
+	 * @param bool whether to use cache
+	 * @return void
+	 */
 	var loadArray = function(paths, callback, results, cached) {
 		
 		results = results || [];
@@ -317,6 +333,14 @@
 		}, cached);
 	};
 	
+	/**
+	 * Gets a script remotely, runs it
+	 * and caches it.
+	 *
+	 * @param string
+	 * @param function
+	 * @return void
+	 */
 	var getScript = function(source, callback) {
 		callback = callback || noop;
 		
@@ -341,6 +365,15 @@
 		script.src = source;
 	};
 	
+	/**
+	 * Gets a file remotely
+	 * and caches it.
+	 *
+	 * @param string
+	 * @param function success callback
+	 * @param function fail callback
+	 * @return void
+	 */
 	var getFile = function(url, success, fail) {
 		success = success || noop;
 		fail 	= fail || noop;
