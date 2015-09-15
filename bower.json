@@ -1,5 +1,6 @@
 {
   "name": "acquire",
+  "description": "Lightweight AMD require() script and file loader with caching",
   "version": "0.0.5",
   "main": [
   	"acquire.min.js"
@@ -7,6 +8,13 @@
   "authors": [
     "Christian Blanquera <cblanquera@openovate.com>"
   ],
+  "keywords": [
+    "require",
+    "amd",
+    "jquery",
+    "angular"
+  ],
+  "homepage": "https://github.com/cblanquera/acquire",
   "license": "MIT",
   "ignore": [
     "**/.*",
