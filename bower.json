@@ -1,10 +1,10 @@
 {
   "name": "acquire",
   "version": "0.0.5",
-  main: [
+  "main": [
   	"acquire.min.js"
   ],
-  authors: [
+  "authors": [
     "Christian Blanquera <cblanquera@openovate.com>"
   ],
   "license": "MIT",
