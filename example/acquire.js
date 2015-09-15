@@ -1,7 +1,7 @@
 /**
  * Acquire - Lightweight require() script and file loader with caching
  *
- * @version 0.0.4
+ * @version 0.0.5
  * @author Christian Blanquera <cblanquera@openovate.com>
  * @website https://github.com/cblanquera/acquire
  * @license MIT
@@ -9,13 +9,16 @@
 (function() {
 	/* Definition
 	-------------------------------*/
-	var definition = function(path, callback) {
+	var acquire = function(path, callback) {
 		callback = callback || noop;
 		
 		//requirejs style
 		if(path instanceof Array) {
 			return loadArray(path, function() {
 				var args = Array.prototype.slice.apply(arguments);
+				
+				//delay the callback to match the 
+				//order of precached and unloaded
 				setTimeout(function() {
 					callback.apply(null, args);
 				});
@@ -23,12 +26,12 @@
 		}
 		
 		// node style
-		return definition.loadPath(path, callback, true);
+		return acquire.loadPath(path, callback, true);
 	};
 	
 	/* Public Properties
 	-------------------------------*/
-	definition.cache = {};
+	acquire.cache = {};
 	
 	/* Private Properties
 	-------------------------------*/
@@ -45,7 +48,7 @@
 	 * @param object 
 	 * @return this
 	 */
-	definition.config = function(config) {
+	acquire.config = function(config) {
 		//soft merge
 		for(var path in config) {
 			if(config.hasOwnProperty(path)) {
@@ -53,7 +56,7 @@
 			}
 		}
 		
-		return definition;
+		return acquire;
 	};
 	
 	/**
@@ -63,7 +66,7 @@
 	 * @param callback
 	 * @return void
 	 */
-	definition.load = function(paths, callback) {
+	acquire.load = function(paths, callback) {
 		callback = callback || noop;
 		
 		//if it's a string lets make it into an array
@@ -80,8 +83,9 @@
 			callback = noop;
 		}
 		
-		//if paths is an array load it as an array
+		//if paths is an array, load it as an array
 		//NOTE: nothing should be really returned
+		// because it's obviously not cached
 		if(paths instanceof Array) {
 			return loadArray(paths, function() {
 				var args = Array.prototype.slice.apply(arguments);
@@ -93,6 +97,7 @@
 		
 		//if it's not a string or array, it's an object
 		//NOTE: nothing should be really returned
+		// because it's obviously not cached
 		return loadObject(paths, function() {
 			var args = Array.prototype.slice.apply(arguments);
 			setTimeout(function() {
@@ -109,16 +114,16 @@
 	 * @param function
 	 * @param bool
 	 */
-	definition.loadPath = function(path, callback, cached) {
+	acquire.loadPath = function(path, callback, cached) {
 		//determine the path
-		path = definition.bpm(path);
+		path = acquire.bpm(path);
 		
 		//if it's a js file
 		if(path.split('.').pop() === 'js') {
-			return definition.loadScript(path, callback, cached);
+			return acquire.loadScript(path, callback, cached);
 		}
 		
-		return definition.loadFile(path, callback, cached);
+		return acquire.loadFile(path, callback, cached);
 	};
 	
 	/**
@@ -130,36 +135,49 @@
 	 * @param bool
 	 * @return mixed
 	 */
-	definition.loadScript = function(path, callback, cached) {
-		
+	acquire.loadScript = function(path, callback, cached) {
 		//if we are considering cache and it exists
-		if(cached && typeof definition.cache[path] !== 'undefined') {
+		if(cached && typeof acquire.cache[path] !== 'undefined') {
 			//is it evaluable ?
-			if(typeof definition.cache[path] === 'string'
-			&& definition.cache[path].indexOf('eval;') === 0) {
-				eval(decodeURIComponent(definition.cache[path].substr(5)));
-				definition.cache[path] = module.exports;
+			if(typeof acquire.cache[path] === 'string'
+			&& acquire.cache[path].indexOf('eval;') === 0) {
+				//yea this just happened.
+				eval(decodeURIComponent(acquire.cache[path].substr(5)));
+				
+				acquire.cache[path] = module.exports;
+				
+				//reset exports
+				module.exports = null;
 			}
 			
 			//return it
+			
+			//requirejs style
 			setTimeout(function() {
-				callback(definition.cache[path]);
+				callback(acquire.cache[path]);
 			});
 			
 			//node js style
-			return definition.cache[path];	
+			return acquire.cache[path];	
 		}
 		
+		//otherwise, it's not cached yet
 		getScript(path, function() {
+			//if no exports
 			if(!module.exports) {
-				callback(definition.cache[path]);
+				//there's nothing to cache
+				callback(acquire.cache[path]);
 				return;
 			}
 			
-			definition.cache[path] = module.exports;
+			//cache it
+			acquire.cache[path] = module.exports;
 			
+			//reset exports
 			module.exports = null;
-			callback(definition.cache[path]);
+			
+			//continue with life.
+			callback(acquire.cache[path]);
 		});
 	};
 	
@@ -172,28 +190,34 @@
 	 * @param bool
 	 * @return mixed
 	 */
-	definition.loadFile = function(path, callback, cached) {
+	acquire.loadFile = function(path, callback, cached) {
 		//if we are considering cache and it exists
-		if(cached && typeof definition.cache[path] !== 'undefined') {
+		if(cached && typeof acquire.cache[path] !== 'undefined') {
 			//is it evaluable ?
-			if(typeof definition.cache[path] === 'string'
-			&& definition.cache[path].indexOf('eval;') === 0) {
-				definition.cache[path] = decodeURIComponent(definition.cache[path].substr(5));
+			if(typeof acquire.cache[path] === 'string'
+			&& acquire.cache[path].indexOf('eval;') === 0) {
+				//a fake eval for non js
+				acquire.cache[path] = decodeURIComponent(acquire.cache[path].substr(5));
 			}
 			
 			//return it
+			
+			//require js style
 			setTimeout(function() {
-				callback(definition.cache[path]);
+				callback(acquire.cache[path]);
 			});
 			
 			//node js style
-			return definition.cache[path];	
+			return acquire.cache[path];	
 		}
 		
 		//lets ajax.
 		getFile(path, function(response) {
-			definition.cache[path] = response;
-			callback(definition.cache[path]);
+			//cache the response
+			acquire.cache[path] = response;
+			
+			//continue with life
+			callback(acquire.cache[path]);
 		});
 	};
 	
@@ -203,7 +227,7 @@
 	 * @param string
 	 * @return string
 	 */
-	definition.getPath = function(path) {
+	acquire.getPath = function(path) {
 		//get the extension
 		var extension = path.split('.').pop();
 		
@@ -219,20 +243,21 @@
 	};
 	
 	/**
+	 * Bower Package Manager
 	 * Determines the entire path given 
 	 * the global pathing set in config.
 	 * WARNING: if using relative paths like template/file
-	 * this would translate to /browser_modules/template/file/index.js
+	 * this would translate to /bower_components/template/file/index.js
 	 *
 	 * @param string
 	 * @return string
 	 */
-	definition.bpm = function(path) {
+	acquire.bpm = function(path) {
 		//if it starts with a / or has a ://
 		if(path.indexOf('/') === 0
 		|| path.indexOf('://') !== -1) {
 			//just do the default thing
-			return definition.getPath(path);
+			return acquire.getPath(path);
 		}
 		
 		var pathArray = path.split('/');
@@ -244,7 +269,7 @@
 		path = pathArray.join('/');
 		
 		//this is the hard coded path
-		var root = '/browser_modules';
+		var root = '/bower_components';
 		
 		//this is the hard coded index
 		var index = '/index.js';
@@ -271,7 +296,7 @@
 			path = '/' + path;
 		}
 		
-		return definition.getPath(root + extra + path);
+		return acquire.getPath(root + extra + path);
 	};
 	
 	/* Private Methods
@@ -289,8 +314,8 @@
 		//soft merge
 		for(var path in paths) {
 			if(paths.hasOwnProperty(path)) {
-				definition.cache[path] = paths[path];
-				results.push(definition.cache[path]);
+				acquire.cache[path] = paths[path];
+				results.push(acquire.cache[path]);
 			}
 		}
 		
@@ -309,7 +334,6 @@
 	 * @return void
 	 */
 	var loadArray = function(paths, callback, results, cached) {
-		
 		results = results || [];
 		
 		if(!paths.length) {
@@ -327,7 +351,7 @@
 			return;
 		}
 		
-		definition.loadPath(path, function(result) {
+		acquire.loadPath(path, function(result) {
 			results.push(result);
 			loadArray(paths, callback, results, cached);
 		}, cached);
@@ -437,17 +461,20 @@
 	
 	/* Adaptor
 	-------------------------------*/
-	if(!window.module) {
+	//make a module object
+	if(typeof window.module === 'undefined') {
 		window.module = { exports: null };
 	}
 	
-	window.acquire = definition;
+	//Set global variables
+	window.acquire = acquire;
 	
+	//no requirejs ? You made the right decision :)
 	if(typeof window.require === 'undefined') {
-		window.require = definition;
+		window.require = acquire;
 	}
 	
 	if(typeof jQuery !== 'undefined' && typeof jQuery.require === 'undefined') {
-		jQuery.extend({ require: definition });
+		jQuery.extend({ require: acquire });
 	}
 })();

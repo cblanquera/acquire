@@ -1,7 +1,7 @@
 Acquire
 =====
 
-Lightweight require() script and file loader with caching
+Lightweight AMD require() script and file loader with caching
 
 #### Usage
 
@@ -67,7 +67,7 @@ require('foobar/bar'); // will now be the same as require('/foobar/bar.js')
 require('foobar/bar/'); // will now be the same as require('/foobar/bar/index.js')
 ```
 
-`Warning: Relative paths like require('application/bar') with no config will default to require('/browser_modules/application/bar.js')`
+`Warning: Relative paths like require('application/bar') with no config will default to require('/bower_components/application/bar.js')`
 
 #### No Conflict
 
@@ -77,7 +77,7 @@ Acquire will check to make sure require isn't already used before using that nam
 
 #### Why not X ?
 
- * Wanted a combination of Node style requiring with optional async callback
+ * Wanted a combination of Node style (AMD) requiring with optional async callback
  * Wanted a preloader, but didn't want preloading to be a requirement 
  * Wanted to auto parse JSON Data
  * Wanted something that would not conflict with other require methods (ie. Cordova)
@@ -92,3 +92,4 @@ Acquire will check to make sure require isn't already used before using that nam
  * PhoneGap - using with cordova
  * Gulp - When combining and uglifying
  * Grunt - When combining and uglifying
+ * Bower
