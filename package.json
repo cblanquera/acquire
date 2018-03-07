@@ -1,6 +1,6 @@
 {
   "name": "acquire",
-  "version": "1.0.0",
+  "version": "0.0.6",
   "description": "Lightweight require() script and file loader with caching",
   "keywords": ["require", "acquire", "requirejs", "acquirejs"],
   "homepage": "https://github.com/cblanquera/acquire",
