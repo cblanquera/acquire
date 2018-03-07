@@ -1,7 +1,7 @@
 {
-  "name": "acquire",
+  "name": "yarn-acquire",
   "version": "0.0.6",
-  "description": "Lightweight require() script and file loader with caching",
+  "description": "Lightweight client side require() script and file loader with caching",
   "keywords": ["require", "acquire", "requirejs", "acquirejs"],
   "homepage": "https://github.com/cblanquera/acquire",
   "bugs": "https://github.com/cblanquera/acquire/issues",
