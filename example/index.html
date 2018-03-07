@@ -8,16 +8,16 @@
 require.load(
 '/application/bar.js',
 '/application/template.html',
-'/application/circle2.js',  
-'/application/circle1.js', 
-'/application/schema.json', 
+'/application/circle2.js',
+'/application/circle1.js',
+'/application/schema.json',
 function(bar, template) {
-	console.log('----Mass Require 1----');
-	console.log(bar());
-	console.log(template);
-	
-	console.log('----Singular Tests----');
-	require('/test.js');
+    console.log('----Mass Require 1----');
+    console.log(bar());
+    console.log(template);
+
+    console.log('----Singular Tests----');
+    require('/test.js');
 });
 </script>
 </head>
