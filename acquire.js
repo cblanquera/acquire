@@ -118,9 +118,16 @@
         //determine the path
         path = acquire.ypm(path);
 
+        var extension = path.split('.').pop();
+
         //if it's a js file
-        if(path.split('.').pop() === 'js') {
+        if(extension === 'js') {
             return acquire.loadScript(path, callback, cached);
+        }
+
+        //if it's a css file
+        if(extension === 'css') {
+            return acquire.loadStyle(path, callback, cached);
         }
 
         return acquire.loadFile(path, callback, cached);
@@ -177,6 +184,39 @@
             module.exports = null;
 
             //continue with life.
+            callback(acquire.cache[path]);
+        });
+    };
+
+    /**
+     * Head loads any style in, considering
+     * cache if the flag is on
+     *
+     * @param string
+     * @param function
+     * @param bool
+     * @return mixed
+     */
+    acquire.loadStyle = function(path, callback, cached) {
+        //if we are considering cache and it exists
+        if(cached && typeof acquire.cache[path] !== 'undefined') {
+            //return it
+
+            //require js style
+            setTimeout(function() {
+                callback(acquire.cache[path]);
+            });
+
+            //node js style
+            return acquire.cache[path];
+        }
+
+        //lets head load.
+        getStyle(path, function(response) {
+            //cache the response
+            acquire.cache[path] = response;
+
+            //continue with life
             callback(acquire.cache[path]);
         });
     };
@@ -269,7 +309,7 @@
         path = pathArray.join('/');
 
         //this is the hard coded path
-        var root = config.ypm || '/node_modules';
+        var root = paths.ypm || '/node_modules';
 
         //this is the hard coded index
         var index = '/index.js';
@@ -387,6 +427,28 @@
         };
 
         script.src = source;
+    };
+
+    /**
+     * Gets a style remotely
+     * and caches it.
+     *
+     * @param string
+     * @param function
+     * @return void
+     */
+    var getStyle = function(source, callback) {
+        callback = callback || noop;
+
+        var style     = document.createElement('link');
+        var head     = document.getElementsByTagName('head')[0];
+
+        style.type = 'text/css';
+        style.rel = 'stylesheet';
+        style.href = source;
+
+        head.appendChild(style);
+        callback();
     };
 
     /**
