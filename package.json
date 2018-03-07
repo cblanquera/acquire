@@ -1,13 +1,22 @@
 {
   "name": "yarn-acquire",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Lightweight client side require() script and file loader with caching",
-  "keywords": ["require", "acquire", "requirejs", "acquirejs"],
+  "keywords": [
+    "require",
+    "acquire",
+    "requirejs",
+    "acquirejs"
+  ],
   "homepage": "https://github.com/cblanquera/acquire",
   "bugs": "https://github.com/cblanquera/acquire/issues",
   "repository": "https://github.com/cblanquera/acquire.git",
   "author": "Christian Blanquera <cblanquera@openovate.com>",
   "license": "MIT",
   "main": "acquire.js",
-  "files": ["acquire.js", "acquire.min.js", "acquire.min.js.map"]
+  "files": [
+    "acquire.js",
+    "acquire.min.js",
+    "acquire.min.js.map"
+  ]
 }
