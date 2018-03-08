@@ -1,7 +1,7 @@
 /**
  * Acquire - Lightweight require() script and file loader with caching
  *
- * @version 0.0.5
+ * @version 0.0.8
  * @author Christian Blanquera <cblanquera@openovate.com>
  * @website https://github.com/cblanquera/acquire
  * @license MIT
@@ -37,6 +37,7 @@
     -------------------------------*/
     var noop = function() {};
     var paths = {};
+    var queue = {};
 
     /* Public Methods
     -------------------------------*/
@@ -408,8 +409,18 @@
     var getScript = function(source, callback) {
         callback = callback || noop;
 
-        var script     = document.createElement('script');
-        var head     = document.getElementsByTagName('head')[0];
+        //if there's a queue
+        if (queue[source] instanceof Array) {
+            //just add it
+            return queue[source].push(callback);
+        }
+
+        //otherwise there is not a queue
+        //so let's create one
+        queue[source] = [callback];
+
+        var script = document.createElement('script');
+        var head = document.getElementsByTagName('head')[0];
 
         script.async = 1;
 
@@ -421,7 +432,11 @@
                 script = undefined;
 
                 if(!isAbort) {
-                    callback();
+                    queue[source].forEach(function(callback) {
+                        callback();
+                    });
+
+                    delete queue[source];
                 }
             }
         };
@@ -439,6 +454,16 @@
      */
     var getStyle = function(source, callback) {
         callback = callback || noop;
+
+        //if there's a queue
+        if (queue[source] instanceof Array) {
+            //just call the callback
+            return callback();
+        }
+
+        //otherwise there is not a queue
+        //so let's create one
+        queue[source] = [];
 
         var style     = document.createElement('link');
         var head     = document.getElementsByTagName('head')[0];
@@ -462,7 +487,23 @@
      */
     var getFile = function(url, success, fail) {
         success = success || noop;
-        fail     = fail || noop;
+        fail = fail || noop;
+
+        //if there's a queue
+        if (queue[url] instanceof Array) {
+            //just add it
+            return queue[url].push({
+                success: success,
+                fail: fail
+            });
+        }
+
+        //otherwise there is not a queue
+        //so let's create one
+        queue[url] = [{
+            success: success,
+            fail: fail
+        }];
 
         var xhr;
 
@@ -486,7 +527,12 @@
         }
 
         if(!xhr) {
-            fail(null);
+            //fail the queue
+            queue[url].forEach(function(callback) {
+                callback.fail(null);
+            });
+
+            delete queue[url];
             return;
         }
 
@@ -496,7 +542,12 @@
             }
 
             if(xhr.status >= 404 && xhr.status < 600) {
-                fail(xhr);
+                //fail the queue
+                queue[url].forEach(function(callback) {
+                    callback.fail(xhr);
+                });
+
+                delete queue[url];
                 return;
             }
 
@@ -512,7 +563,12 @@
                     response = JSON.parse(response);
                 } catch(e) {}
 
-                success(response, xhr);
+                //fail the queue
+                queue[url].forEach(function(callback) {
+                    callback.success(response, xhr);
+                });
+
+                delete queue[url];
             }
         };
 
